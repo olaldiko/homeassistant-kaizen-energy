@@ -55,7 +55,7 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
         await session.close()
 
 
-class ConfigFlow(config_entries.ConfigFlow, domain="tridens"):
+class ConfigFlow(config_entries.ConfigFlow, domain="kaizen_energy"):
     """Handle a config flow for Kaizen Energy."""
 
     VERSION = 1
