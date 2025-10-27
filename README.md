@@ -1,6 +1,6 @@
 # Kaizen Energy Integration for Home Assistant
 
-[![Open Integration](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=olaldiko&repository=home-assistant-kaizen-energy&category=integration)
+[![Open Integration](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=olaldiko&repository=homeassistant-kaizen-energy&category=integration)
 
 This integration allows to retrieve consumption and cost data from the Kaizen Energy utility provider.
 
