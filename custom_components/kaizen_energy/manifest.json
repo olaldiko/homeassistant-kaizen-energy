@@ -1,0 +1,12 @@
+{
+  "domain": "tridens",
+  "name": "Kaizen Energy - Kaizen Energy heating consumption data via Tridens Monetization API",
+  "config_flow": true,
+  "documentation": "https://github.com/olaldiko/homeassistant-kaizen-energy",
+  "issue_tracker": "https://github.com/olaldiko/homeassistant-kaizen-energy/issues",
+  "codeowners": ["@olaldiko"],
+  "requirements": ["aiohttp", "homeassistant-historical-sensor==2.0.0rc6"],
+  "dependencies": ["recorder"],
+  "iot_class": "cloud_polling",
+  "version": "0.1.0"
+}

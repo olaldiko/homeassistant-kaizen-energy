@@ -1,0 +1,7 @@
+{
+  "name": "Kaizen Energy Consumption data for Home Assistant",
+  "country": "IE",
+  "zip_release": false,
+  "homeassistant": "2025.1.0",
+  "hacs": "2.0.0"
+}
