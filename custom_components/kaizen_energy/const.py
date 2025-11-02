@@ -16,6 +16,6 @@
 # USA.
 """Constants for the Kaizen Energy integration."""
 
-DOMAIN = "tridens"
+DOMAIN = "kaizen_energy"
 NAME = "Kaizen Energy"
 TRIDENS_SITE = "kaizen-energy"
