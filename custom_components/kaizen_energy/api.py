@@ -66,13 +66,16 @@ class TridensApiClient:
         self._password = password
         self._session = session
         self._access_token: str | None = None
+        self._customer_code: str | None = None
         self._customer_id: str | None = None
+        self._group_id: str | None = None
+        self._balance_group_id: str | None = None
         self._site_code = TRIDENS_SITE
         self._base_url = "https://app.tridenstechnology.com/monetization"
         self._service_type = "HEAT_METER_READ_SERVICE"
         # ------------------------------------------
 
-    async def async_get_token(self) -> str:
+    async def async_get_token(self) -> str | None:
         """Get a new access token from the API."""
         auth_url = f"{self._base_url}/authenticate"
         auth_payload = {
@@ -97,11 +100,11 @@ class TridensApiClient:
 
                 if "access_token" in token_data:
                     self._access_token = token_data["access_token"]
-                    self._set_customer_id_from_token(self._access_token)
+                    self._set_customer_code_from_token(self._access_token)
                     return self._access_token
                 if "token" in token_data:
                     self._access_token = token_data["token"]
-                    self._set_customer_id_from_token(self._access_token)
+                    self._set_customer_code_from_token(self._access_token)
                     return self._access_token
 
                 _LOGGER.error("No 'access_token' or 'token' in auth response")
@@ -117,9 +120,38 @@ class TridensApiClient:
         await self.async_get_token()
         return True
 
-    def _set_customer_id_from_token(self, access_token):
+    def _set_customer_code_from_token(self, access_token):
         token_json = jwt.decode(access_token, options={"verify_signature": False})
-        self._customer_id = token_json.get("customer_id")
+        self._customer_code = token_json.get("customer_code")
+
+    async def _get_customer_data(self) -> str | None:
+        """Collect customer data fields."""
+        if self._customer_code is None:
+            await self.async_get_token()
+        url = f"{self._base_url}/api/v1/customers/{self._customer_code}"
+        data = await self._api_request("GET", url)
+        try:
+            groups = data.get("groups")
+            self._group_id = groups[0]["id"]
+            _LOGGER.info("Successfully obtained customer group information")
+        except:
+            _LOGGER.error("Unable to obtain customer group information")
+
+    async def _get_subscription_data(self) -> str | None:
+        """Collect subscription data fields."""
+        if self._group_id is None:
+            await self._get_customer_data()
+        params = {"parent-group": self._group_id}
+        url = f"{self._base_url}/api/v1/customers"
+        data = await self._api_request("GET", url, params=params)
+        try:
+            self._balance_group_id = data["objects"][0]["subscriptions"][0][
+                "balance_group"
+            ]["id"]
+            self._customer_id = data["objects"][0]["id"]
+            _LOGGER.info("Successfully obtained subscription data")
+        except ValueError:
+            _LOGGER.error("Balance group and customer ID not found")
 
     async def _api_request(self, method: str, url: str, **kwargs) -> Any:
         """Make an authenticated API request.
@@ -132,6 +164,7 @@ class TridensApiClient:
         headers = kwargs.get("headers", {})
         headers["Authorization"] = f"Bearer {self._access_token}"
         headers["Accept"] = "application/json"
+        headers["Response-Type"] = "full"
         kwargs["headers"] = headers
 
         try:
@@ -161,21 +194,20 @@ class TridensApiClient:
         end: datetime | None = None,
     ) -> list[ConsumptionRecord]:
         """Fetch consumption data from the API."""
-        if self._customer_id is None:
-            await self.async_get_token()
+        if self._customer_id is None or self._balance_group_id is None:
+            await self._get_subscription_data()
         url = f"{self._base_url}/api/v1/customers/{self._customer_id}/usage-events"
         params = {
             "service_type": self._service_type,
             "page": 1,
             "count": 100,
+            "order-dir": "desc",
         }
         if start:
-            params["time-from"] = int(start.timestamp() * 1000)
+            params["time-from"] = int(start.timestamp()) * 1000
         if end:
-            params["time-to"] = int(end.timestamp() * 1000)
-
+            params["time-to"] = int(end.timestamp()) * 1000
         data = await self._api_request("GET", url, params=params)
-
         records = []
         for item in data.get("objects", []):
             record = ConsumptionRecord(
@@ -186,5 +218,5 @@ class TridensApiClient:
                 cost=float(item["amount_with_discount"]),
             )
             records.append(record)
-
+        _LOGGER.info("Successfully obtained consumption data")
         return records

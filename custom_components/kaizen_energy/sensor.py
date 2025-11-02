@@ -18,6 +18,7 @@
 
 from datetime import datetime, timedelta
 import itertools
+import logging
 
 from homeassistant_historical_sensor import (
     HistoricalSensor,
@@ -41,6 +42,8 @@ from homeassistant.util import dt as dt_util
 
 from .api import TridensApiClient
 from .const import DOMAIN
+
+_LOGGER = logging.getLogger(__name__)
 
 PLATFORM = "sensor"
 
@@ -109,7 +112,10 @@ class KaizenEnergySensor(PollUpdateMixin, HistoricalSensor, SensorEntity):
         """
         hist_states = []
         consumption_records = await self.api.fetch_consumption(
-            start=datetime.now() - timedelta(days=15), end=datetime.now()
+            start=datetime.now() - timedelta(days=30), end=datetime.now()
+        )
+        _LOGGER.debug(
+            "Energy sensor: Fetched %d consumption records", len(consumption_records)
         )
         for consumption_record in consumption_records:
             dt = consumption_record.time_of_read.astimezone()
@@ -117,6 +123,11 @@ class KaizenEnergySensor(PollUpdateMixin, HistoricalSensor, SensorEntity):
             # Subtract 1 day to assign to the correct date
             corrected_dt = dt - timedelta(days=1)
             state = consumption_record.consumption
+            _LOGGER.debug(
+                "Energy record: date=%s, consumption=%s",
+                corrected_dt.date(),
+                state,
+            )
             hist_states.append(
                 HistoricalState(
                     state=state,
@@ -126,6 +137,7 @@ class KaizenEnergySensor(PollUpdateMixin, HistoricalSensor, SensorEntity):
                 )
             )
         self._attr_historical_states = hist_states
+        _LOGGER.debug("Energy sensor: Created %d historical states", len(hist_states))
 
     @property
     def statistic_id(self) -> str:
@@ -251,12 +263,20 @@ class KaizenEnergyCostSensor(PollUpdateMixin, HistoricalSensor, SensorEntity):
         consumption_records = await self.api.fetch_consumption(
             start=datetime.now() - timedelta(days=30), end=datetime.now()
         )
+        _LOGGER.debug(
+            "Cost sensor: Fetched %d consumption records", len(consumption_records)
+        )
         for consumption_record in consumption_records:
             dt = consumption_record.time_of_read.astimezone()
             # Readings at 1:00 AM represent the previous day's cost
             # Subtract 1 day to assign to the correct date
             corrected_dt = dt - timedelta(days=1)
             state = consumption_record.cost  # Use cost field instead of consumption
+            _LOGGER.debug(
+                "Cost record: date=%s, cost=%s",
+                corrected_dt.date(),
+                state,
+            )
             hist_states.append(
                 HistoricalState(
                     state=state,
@@ -266,6 +286,7 @@ class KaizenEnergyCostSensor(PollUpdateMixin, HistoricalSensor, SensorEntity):
                 )
             )
         self._attr_historical_states = hist_states
+        _LOGGER.debug("Cost sensor: Created %d historical states", len(hist_states))
 
     @property
     def statistic_id(self) -> str:

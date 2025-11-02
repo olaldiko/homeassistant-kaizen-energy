@@ -42,7 +42,7 @@ def get_device_info():
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Set up Tridens from a config entry."""
+    """Set up Kaizen Energy from a config entry."""
     hass.data.setdefault(DOMAIN, {})
     hass.data[DOMAIN][entry.entry_id] = get_device_info()
 
